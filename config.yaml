@@ -1,0 +1,5 @@
+ocr_inputs: ./data/OCR_Inputs_hard.txt
+prod_names: ./data/Prod_names.txt
+gt_match: ./data/mapping.txt
+result_match: ./data/output/result_match.txt
+save_result_match: True
