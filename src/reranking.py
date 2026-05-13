@@ -3,6 +3,41 @@ import utils as util
 import yaml
 
 
+def cascade_match_full(query: str, products: list, top_k=10):
+    q_prod, q_man = util.parse_product_full(query)
+    if not q_prod:
+        q_prod = query 
+
+    parsed_products = [util.parse_product_full(p) for p in products]
+    print(q_prod, q_man)
+
+    candidates = process.extract(
+        q_prod,
+        [p[0] for p in parsed_products],
+        scorer=fuzz.token_set_ratio,
+        processor=utils.default_process,
+        limit=top_k
+    )
+
+    best_idx = None
+    best_total_score = -1
+    
+    for cand_name, name_score, idx in candidates:
+        _, cand_man = parsed_products[idx]
+        
+        if q_man and cand_man:
+            man_score = fuzz.token_set_ratio(q_man.lower(), cand_man.lower()) / 100.0
+        else:
+            man_score = 0.5
+        
+        
+        total = (1.0 * name_score/100) + (0.2 * man_score)
+        
+        if total > best_total_score:
+            best_total_score = total
+            best_idx = idx
+    
+    return best_idx if best_idx is not None else candidates[0][2]
 
 with open('./config.yaml', 'r', encoding='utf-8') as f:
     config = yaml.safe_load(f)
@@ -69,14 +104,7 @@ def fix_word(words: str, eng_to_rus: {}, rus_to_eng: {}, num_to_rus: {}, excepti
         if count_char > 0:
             word = [num_to_rus.get(ch, ch) for ch in word]
 
-        if count_quote > 1 and count_quote <= 2 and False:
-            if rus_cnt >= eng_cnt:
-                # Преобладают русские -> заменяем английские на русские
-                replace_map = eng_to_rus
-            elif eng_cnt > rus_cnt:
-                replace_map = rus_to_eng
-        else:
-            replace_map = eng_to_rus
+        replace_map = eng_to_rus
         
         word = [replace_map.get(ch, ch) for ch in word]
         results.append(''.join(word))
@@ -103,47 +131,36 @@ gt_map = []
 gt_map_txt = util.load_file(config["gt_match"])
 for line in gt_map_txt:
     line_split = line.split()
+    if line_split[1] != "?":
+            line_split[1] = int(line_split[1]) - 1
+    else: 
+        line_split[1] = -1
     gt_map.append(line_split[1])
 
 
 correct = 0
 with open(config["result_match"], 'w', encoding='utf-8') as f:
-    for i, query in enumerate(ocr_inputs):
-        best = process.extractOne(
-            query,
-            prod_names,
-            scorer=fuzz.token_set_ratio,   
-            processor=utils.default_process
-        )
-        if best is None:
-            best_idx = -1
-            best_score = 0
-        else:
-            best_match, best_score, best_idx = best  
+    for i, query in enumerate(ocr_inputs_clean):
+        best_idx = cascade_match_full(query, prod_names_clean, top_k=10)
+
 
         f.write(f"------index_{i}------\n")
         """
-        if str(best_idx + 1) == gt_map[i]:
+        if best_idx == gt_map[i]:
             correct += 1
             f.write("---------CORRECT---------\n")
         else:
             f.write("---------INCORRECT---------\n")    
         
-        if gt_map[i] != "?":
-            gt_map[i] = int(gt_map[i]) - 1
-        else: 
-            f.write("SKIIP")
-            gt_map[i] = -1
         """
-        
         f.write(f"Query: {query}\n")
-        f.write(f"Best match: {prod_names[best_idx]} (score={best_score:.2f})\n")
-        # f.write(f"Ground truth: {prod_names[gt_map[i]]}\n")
+        f.write(f"Best match: {prod_names_clean[best_idx ]} (best_idx: {best_idx})\n")
+        # f.write(f"Ground truth: {prod_names_clean[gt_map[i]]}, gt_map: {gt_map[i]}\n")
 
         f.write("\n")
 
 print("Готово, результат успешно сохранён в :", config["result_match"])
         
 
-#accuracy = correct / (len(ocr_inputs_clean) - 5)
-#print(f"\nAccuracy (fuzzy only): {accuracy:.4f}")
+# accuracy = correct / (len(ocr_inputs_clean) - 3)
+# print(f"\nAccuracy (fuzzy only): {accuracy:.4f}")
