@@ -23,30 +23,24 @@ def parse_product_full(text: str):
     """
     text = text.strip()
     
-    # --- 1. Ищем производителя (в кавычках, включая непарные) ---
     manufacturer = ''
     
-    # Сначала ищем парные кавычки (самый надёжный вариант)
     pair_match = re.search(r'"([^"]+)"', text)
     if pair_match:
         manufacturer = pair_match.group(1)
-        # Удаляем эту часть из текста (вместе с кавычками)
         text = text.replace(f'"{manufacturer}"', '')
     else:
-        # Ищем только открывающую кавычку: "Слово (без закрытия) до пробела или конца строки
         open_match = re.search(r'"([^"\s]+)', text)
         if open_match:
             manufacturer = open_match.group(1)
             text = text.replace(f'"{manufacturer}', '')
         else:
-            # Ищем только закрывающую кавычку: слово без открывающей кавычки, заканчивающееся на "
             close_match = re.search(r'([^"\s]+)"', text)
             if close_match:
                 manufacturer = close_match.group(1)
                 text = text.replace(f'{manufacturer}"', '')
     
 
-    # --- 3. Оставшийся текст — это название товара ---
     product = re.sub(r'\s+', ' ', text).strip()
     
     return product, manufacturer
