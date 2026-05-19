@@ -4,12 +4,12 @@ import yaml
 
 
 def cascade_match_full(query: str, products: list, top_k=10):
-    q_prod, q_man = util.parse_product_full(query)
+    q_prod, q_man, q_storage = util.parse_product_full(query)
     if not q_prod:
-        q_prod = query 
+        q_prod = query
 
     parsed_products = [util.parse_product_full(p) for p in products]
-    print(q_prod, q_man)
+    print(f"{q_prod} || {q_man} || {q_storage}")
 
     candidates = process.extract(
         q_prod,
@@ -23,15 +23,20 @@ def cascade_match_full(query: str, products: list, top_k=10):
     best_total_score = -1
     
     for cand_name, name_score, idx in candidates:
-        _, cand_man = parsed_products[idx]
+        _, cand_man, cand_storage = parsed_products[idx]
         
         if q_man and cand_man:
             man_score = fuzz.token_set_ratio(q_man.lower(), cand_man.lower()) / 100.0
         else:
             man_score = 0.5
+
+        if q_storage and cand_storage:
+            storage_score = fuzz.token_set_ratio(q_storage, cand_storage) / 100.0
+        else:
+            storage_score = 0.2
         
         
-        total = (1.0 * name_score/100) + (0.2 * man_score)
+        total = (1.0 * name_score/100) + (0.2 * man_score) + (0.3 * storage_score)
         
         if total > best_total_score:
             best_total_score = total
@@ -145,14 +150,15 @@ with open(config["result_match"], 'w', encoding='utf-8') as f:
 
 
         f.write(f"------index_{i}------\n")
+
         """
         if best_idx == gt_map[i]:
             correct += 1
             f.write("---------CORRECT---------\n")
         else:
-            f.write("---------INCORRECT---------\n")    
-        
-        """
+            f.write("---------INCORRECT---------\n")  
+        """  
+
         f.write(f"Query: {query}\n")
         f.write(f"Best match: {prod_names_clean[best_idx ]} (best_idx: {best_idx})\n")
         # f.write(f"Ground truth: {prod_names_clean[gt_map[i]]}, gt_map: {gt_map[i]}\n")

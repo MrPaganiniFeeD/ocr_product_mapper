@@ -1,4 +1,4 @@
-ocr_inputs: ./data/OCR_Inputs_hard.txt
+ocr_inputs: ./data/OCR_Inputs.txt
 prod_names: ./data/Prod_names.txt
 gt_match: ./data/mapping.txt
 result_match: ./data/output/result_match.txt

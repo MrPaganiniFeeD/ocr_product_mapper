@@ -12,19 +12,13 @@ def get_map_dict(file_path: str):
             map_dict[key] = value
     return map_dict
 
-
 def parse_product_full(text: str):
     """
     Возвращает (product_name, manufacturer, storage_condition)
-    Поддерживает непарные кавычки:
-    - "Производитель" -> ('название', 'Производитель')
-    - "Производитель  -> ('название', 'Производитель')
-    - Производитель"  -> ('название', 'Производитель')
     """
     text = text.strip()
-    
+
     manufacturer = ''
-    
     pair_match = re.search(r'"([^"]+)"', text)
     if pair_match:
         manufacturer = pair_match.group(1)
@@ -39,8 +33,23 @@ def parse_product_full(text: str):
             if close_match:
                 manufacturer = close_match.group(1)
                 text = text.replace(f'{manufacturer}"', '')
-    
 
+    text = re.sub(r'([+-])\s*([()]*)\s*(\d)', r'\1\3', text)
+    text = re.sub(r'([+-]?\d+)\s*[()]+\s*([+-]?\d+)', r'\1 \2', text)
+
+    storage_condition = ''
+    numbers = re.findall(r'[+-]?\d+(?:\.\d+)?', text)
+
+    if len(numbers) >= 2:
+        storage_condition = ' '.join(numbers[:2])
+        for num in numbers[:2]:
+            text = text.replace(num, '', 1)
+    elif len(numbers) == 1:
+        storage_condition = numbers[0]
+        text = text.replace(numbers[0], '', 1)
+
+    text = re.sub(r'(?<!\d)[+-](?!\d)', '', text)
+    text = re.sub(r'\(\s*\)', '', text)
     product = re.sub(r'\s+', ' ', text).strip()
-    
-    return product, manufacturer
+
+    return product, manufacturer, storage_condition
