@@ -38,7 +38,7 @@ def cascade_match_full(config, query: str, products: list, top_k=10):
             best_total_score = total_norm
             best_idx = idx
     
-    return best_idx, total_norm
+    return best_idx, total_norm, name_score, man_score, temp_score
 
 with open('./config.yaml', 'r', encoding='utf-8') as f:
     config = yaml.safe_load(f)
@@ -128,7 +128,7 @@ for line in gt_map_txt:
 correct = 0
 with open(config["result_match"], 'w', encoding='utf-8') as f:
     for i, query in enumerate(ocr_inputs_clean):
-        best_idx = cascade_match_full(config, query, prod_names_clean, top_k=10)
+        best_idx = cascade_match_full(config, query, prod_names_clean, top_k=10)[0]
 
 
         f.write(f"------index_{i}------\n")
