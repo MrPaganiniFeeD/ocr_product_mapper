@@ -3,3 +3,6 @@ prod_names: ./data/Prod_names.txt
 gt_match: ./data/mapping.txt
 result_match: ./data/output/result_match.txt
 save_result_match: True
+coef_product: 0.8
+coef_manufacturer: 0.2
+coef_temp: 0.3

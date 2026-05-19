@@ -14,7 +14,7 @@ def get_map_dict(file_path: str):
 
 def parse_product_full(text: str):
     """
-    Возвращает (product_name, manufacturer, storage_condition)
+    Возвращает (product_name, manufacturer, temperature)
     """
     text = text.strip()
 
@@ -37,19 +37,19 @@ def parse_product_full(text: str):
     text = re.sub(r'([+-])\s*([()]*)\s*(\d)', r'\1\3', text)
     text = re.sub(r'([+-]?\d+)\s*[()]+\s*([+-]?\d+)', r'\1 \2', text)
 
-    storage_condition = ''
+    temperature = ''
     numbers = re.findall(r'[+-]?\d+(?:\.\d+)?', text)
 
     if len(numbers) >= 2:
-        storage_condition = ' '.join(numbers[:2])
+        temperature = ' '.join(numbers[:2])
         for num in numbers[:2]:
             text = text.replace(num, '', 1)
     elif len(numbers) == 1:
-        storage_condition = numbers[0]
+        temperature = numbers[0]
         text = text.replace(numbers[0], '', 1)
 
     text = re.sub(r'(?<!\d)[+-](?!\d)', '', text)
     text = re.sub(r'\(\s*\)', '', text)
     product = re.sub(r'\s+', ' ', text).strip()
 
-    return product, manufacturer, storage_condition
+    return product, manufacturer, temperature
