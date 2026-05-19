@@ -2,12 +2,11 @@ from rapidfuzz import process, fuzz, utils, distance
 import utils as util
 import yaml
 
-def cascade_match_full(config, query: str, products: list, top_k=10):
+def cascade_match_full(config, query: str, parsed_products: list, top_k=10):
     q_prod, q_man, q_storage = util.parse_product_full(query)
     if not q_prod:
         q_prod = query
 
-    parsed_products = [util.parse_product_full(p) for p in products]
     candidates = process.extract(
         q_prod,
         [p[0] for p in parsed_products],
@@ -47,6 +46,7 @@ with open('./config.yaml', 'r', encoding='utf-8') as f:
 
 ocr_inputs = util.load_file(config["ocr_inputs"])
 prod_names = util.load_file(config["prod_names"])
+
 
 
 eng_all = "qwertyuiopasdfghjklzxcvbnm"
@@ -112,6 +112,8 @@ def preprocess_lines(lines: list[str]) -> list[str]:
 ocr_inputs_clean = preprocess_lines(ocr_inputs)
 prod_names_clean = preprocess_lines(prod_names)
 
+parsed_products = [util.parse_product_full(p) for p in prod_names_clean]
+
 
 gt_map = []
 
@@ -128,7 +130,7 @@ for line in gt_map_txt:
 correct = 0
 with open(config["result_match"], 'w', encoding='utf-8') as f:
     for i, query in enumerate(ocr_inputs_clean):
-        best_idx = cascade_match_full(config, query, prod_names_clean, top_k=10)[0]
+        best_idx = cascade_match_full(config, query, parsed_products, top_k=10)[0]
 
 
         f.write(f"------index_{i}------\n")
