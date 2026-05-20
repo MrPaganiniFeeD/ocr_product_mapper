@@ -2,6 +2,9 @@ from rapidfuzz import process, fuzz, utils, distance
 import utils as util
 import yaml
 
+CONFIG_PATH = "./config.yaml"
+
+
 def cascade_match_full(config, query: str, parsed_products: list, top_k=10):
     q_prod, q_man, q_storage = util.parse_product_full(query)
     if not q_prod:
@@ -39,28 +42,14 @@ def cascade_match_full(config, query: str, parsed_products: list, top_k=10):
     
     return best_idx, total_norm, name_score, man_score, temp_score
 
-with open('./config.yaml', 'r', encoding='utf-8') as f:
-    config = yaml.safe_load(f)
 
 
 
-ocr_inputs = util.load_file(config["ocr_inputs"])
-prod_names = util.load_file(config["prod_names"])
+def load_config(path: str):
+    with open(path, 'r', encoding='utf-8') as f:
+        config = yaml.safe_load(f)
+        return config
 
-
-
-eng_all = "qwertyuiopasdfghjklzxcvbnm"
-rus_all = "йцукенгшщзхъфывапролджэячсмить"
-
-eng_set = set(eng_all)   # {'a', 'b', 'c', ...}
-rus_set = set(rus_all)   # {'й', 'ц', ...}
-
-eng_to_rus = util.get_map_dict("./data/dict_mapping/eng_to_rus.txt")
-rus_to_eng = {v: k for k, v in eng_to_rus.items()}
-
-
-exception_words = util.get_map_dict("./data/dict_mapping/exception_words.txt")
-num_to_rus = util.get_map_dict("./data/dict_mapping/num_to_rus.txt")
 
 def replace_word(word, exception_words: {}):
     if word in exception_words.keys():
@@ -69,9 +58,6 @@ def replace_word(word, exception_words: {}):
 
 
 def fix_word(config, words: str, eng_to_rus: {}, rus_to_eng: {}, num_to_rus: {}, exception_words: {}) -> str:
-    ocr_inputs = util.load_file(config["ocr_inputs"])
-    prod_names = util.load_file(config["prod_names"])
-
     eng_all = "qwertyuiopasdfghjklzxcvbnm"
     rus_all = "йцукенгшщзхъфывапролджэячсмить"
 
@@ -109,12 +95,29 @@ def preprocess_lines(lines: list[str]) -> list[str]:
         result.append(' '.join(fixed_words))
     return result
 
+### ЗАГРУЗКА КОНФИГА
+config = load_config(CONFIG_PATH)
+
+### ЗАГРУКА DB И OCR_INPUTS
+ocr_inputs = util.load_file(config["ocr_inputs"])
+prod_names = util.load_file(config["prod_names"])
+
+### ЗАГРУЗКА СЛОВАРЕЙ
+eng_to_rus = util.get_map_dict("./data/dict_mapping/eng_to_rus.txt")
+rus_to_eng = {v: k for k, v in eng_to_rus.items()}
+
+exception_words = util.get_map_dict("./data/dict_mapping/exception_words.txt")
+num_to_rus = util.get_map_dict("./data/dict_mapping/num_to_rus.txt")
+
+
+### ПРЕПРОЦЕССИНГ DB И INPUTS
 ocr_inputs_clean = preprocess_lines(ocr_inputs)
 prod_names_clean = preprocess_lines(prod_names)
 
 parsed_products = [util.parse_product_full(p) for p in prod_names_clean]
 
 
+### ЭТО НУЖНО ДЛЯ МЕТРИК
 gt_map = []
 
 gt_map_txt = util.load_file(config["gt_match"])
@@ -126,7 +129,7 @@ for line in gt_map_txt:
         line_split[1] = -1
     gt_map.append(line_split[1])
 
-
+### ОСНОВНОЙ PIPELINE и подсчёт точности на OCR_INPUTS.txt
 correct = 0
 with open(config["result_match"], 'w', encoding='utf-8') as f:
     for i, query in enumerate(ocr_inputs_clean):
@@ -151,6 +154,5 @@ with open(config["result_match"], 'w', encoding='utf-8') as f:
 
 print("Готово, результат успешно сохранён в :", config["result_match"])
         
-
 accuracy = correct / (len(ocr_inputs_clean) - 3)
 print(f"\nAccuracy (fuzzy only): {accuracy:.4f}")
