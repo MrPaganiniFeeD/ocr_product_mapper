@@ -4,7 +4,6 @@ import yaml
 
 CONFIG_PATH = "./config.yaml"
 
-
 def cascade_match_full(config, query: str, parsed_products: list, top_k=10):
     q_prod, q_man, q_storage = util.parse_product_full(query)
     if not q_prod:
@@ -138,21 +137,22 @@ with open(config["result_match"], 'w', encoding='utf-8') as f:
 
         f.write(f"------index_{i}------\n")
 
-        
+        """
         if best_idx == gt_map[i]:
             correct += 1
             f.write("---------CORRECT---------\n")
         else:
             f.write("---------INCORRECT---------\n")  
         
+        """
 
         f.write(f"Query: {query}\n")
         f.write(f"Best match: {prod_names_clean[best_idx]} (best_idx: {best_idx})\n")
-        f.write(f"Ground truth: {prod_names_clean[gt_map[i]]}, gt_map: {gt_map[i]}\n")
+        # f.write(f"Ground truth: {prod_names_clean[gt_map[i]]}, gt_map: {gt_map[i]}\n")
 
         f.write("\n")
 
 print("Готово, результат успешно сохранён в :", config["result_match"])
         
-accuracy = correct / (len(ocr_inputs_clean) - 3)
-print(f"\nAccuracy (fuzzy only): {accuracy:.4f}")
+# accuracy = correct / (len(ocr_inputs_clean) - 3)
+# print(f"\nAccuracy (fuzzy only): {accuracy:.4f}")
